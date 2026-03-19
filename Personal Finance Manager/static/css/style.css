@@ -1,0 +1,35 @@
+/* general body styling */
+body {
+    background-color: #f8f9fa;
+}
+
+
+/* card styling */
+.card {
+    border-radius: 12px;
+}
+
+
+/* navbar brand */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 20px;
+}
+
+
+/* table tweaks */
+.table {
+    vertical-align: middle;
+}
+
+
+/* buttons spacing */
+.btn {
+    border-radius: 8px;
+}
+
+
+/* center headings */
+h2, h3 {
+    font-weight: 600;
+}
