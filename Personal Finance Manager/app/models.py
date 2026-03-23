@@ -9,6 +9,7 @@ from datetime import datetime
 # This table stores all user-related data like login info
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
+    is_admin = db.Column(db.Boolean, default=False)
 
     # basic user info
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -49,3 +50,4 @@ class Transaction(db.Model):
 
     def __repr__(self):
         return f"<Transaction {self.type} - {self.amount}>"
+    

@@ -1,47 +1,43 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, Response, request
 from .models import User, Transaction
 from .forms import RegisterForm, LoginForm, TransactionForm
 from . import db
 from .utils import calculate_totals
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+import csv
 
-# Blueprint setup
+# Blueprint
 main = Blueprint('main', __name__)
-
 
 # -----------------------------
 # HOME
 # -----------------------------
+
 @main.route('/')
 def home():
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+    logout_user()   # 🔥 force logout every time
     return redirect(url_for('main.login'))
-
 
 # -----------------------------
 # REGISTER
 # -----------------------------
 @main.route('/register', methods=['GET', 'POST'])
 def register():
-    # if already logged in → go dashboard
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
 
     form = RegisterForm()
 
     if form.validate_on_submit():
-        # check existing email
         existing_user = User.query.filter_by(email=form.email.data).first()
+
         if existing_user:
             flash('Email already exists. Please login.')
             return redirect(url_for('main.login'))
 
-        # hash password
         hashed_password = generate_password_hash(form.password.data)
 
-        # create new user
         new_user = User(
             username=form.username.data,
             email=form.email.data,
@@ -56,13 +52,11 @@ def register():
 
     return render_template('auth/register.html', form=form)
 
-
 # -----------------------------
 # LOGIN
 # -----------------------------
 @main.route('/login', methods=['GET', 'POST'])
 def login():
-    # if already logged in → skip login
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
 
@@ -71,7 +65,6 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
 
-        # validate credentials
         if user and check_password_hash(user.password, form.password.data):
             login_user(user)
             flash('Login successful!')
@@ -92,17 +85,13 @@ def logout():
     flash('Logged out successfully.')
     return redirect(url_for('main.login'))
 
-
 # -----------------------------
 # DASHBOARD
 # -----------------------------
 @main.route('/dashboard')
 @login_required
 def dashboard():
-    # fetch user's transactions
     transactions = Transaction.query.filter_by(user_id=current_user.id).all()
-
-    # calculate totals using utils
     income, expense, balance = calculate_totals(transactions)
 
     return render_template(
@@ -113,7 +102,6 @@ def dashboard():
         balance=balance
     )
 
-
 # -----------------------------
 # ADD TRANSACTION
 # -----------------------------
@@ -123,9 +111,25 @@ def add_transaction():
     form = TransactionForm()
 
     if form.validate_on_submit():
+
+        # Get current user's transactions
+        transactions = Transaction.query.filter_by(user_id=current_user.id).all()
+
+        income = sum(t.amount for t in transactions if t.type == 'income')
+        expense = sum(t.amount for t in transactions if t.type == 'expense')
+
+        new_amount = form.amount.data
+
+        # ❌ BLOCK NEGATIVE BALANCE
+        if form.type.data == 'expense' and (expense + new_amount > income):
+            remaining = income - expense
+            flash(f'❌ Insufficient balance! You only have ₹{remaining}', 'danger')
+            return render_template('dashboard/add_transaction.html', form=form)
+
+        # ✅ SAVE TRANSACTION
         new_transaction = Transaction(
             type=form.type.data,
-            amount=form.amount.data,
+            amount=new_amount,
             category=form.category.data,
             description=form.description.data,
             user_id=current_user.id
@@ -134,7 +138,7 @@ def add_transaction():
         db.session.add(new_transaction)
         db.session.commit()
 
-        flash('Transaction added successfully!')
+        flash('Transaction added successfully!', 'success')
         return redirect(url_for('main.dashboard'))
 
     return render_template('dashboard/add_transaction.html', form=form)
@@ -148,7 +152,6 @@ def add_transaction():
 def edit_transaction(id):
     transaction = Transaction.query.get_or_404(id)
 
-    # security check (very important)
     if transaction.user_id != current_user.id:
         flash('Unauthorized access!')
         return redirect(url_for('main.dashboard'))
@@ -168,7 +171,6 @@ def edit_transaction(id):
 
     return render_template('dashboard/edit_transaction.html', form=form)
 
-
 # -----------------------------
 # DELETE TRANSACTION
 # -----------------------------
@@ -177,7 +179,6 @@ def edit_transaction(id):
 def delete_transaction(id):
     transaction = Transaction.query.get_or_404(id)
 
-    # security check
     if transaction.user_id != current_user.id:
         flash('Unauthorized action!')
         return redirect(url_for('main.dashboard'))
@@ -188,14 +189,69 @@ def delete_transaction(id):
     flash('Transaction deleted.')
     return redirect(url_for('main.dashboard'))
 
+# -----------------------------
+# EXPORT CSV
+# -----------------------------
+@main.route('/export')
+@login_required
+def export():
+    transactions = Transaction.query.filter_by(user_id=current_user.id).all()
 
+    def generate():
+        yield 'Date,Type,Category,Amount,Description\n'
+        for t in transactions:
+            yield f'{t.date.strftime("%Y-%m-%d")},{t.type},{t.category},{t.amount},{t.description}\n'
+
+    return Response(
+        generate(),
+        mimetype='text/csv',
+        headers={"Content-Disposition": "attachment;filename=transactions.csv"}
+    )
+
+# -----------------------------
+# VISUALIZE
+# -----------------------------
+@main.route('/visualize')
+@login_required
+def visualize():
+    transactions = Transaction.query.filter_by(user_id=current_user.id).all()
+
+    income = sum(t.amount for t in transactions if t.type == 'income')
+    expense = sum(t.amount for t in transactions if t.type == 'expense')
+
+    return render_template('dashboard/visualize.html',
+                           income=income,
+                           expense=expense)
+
+# -----------------------------
+# ADMIN DASHBOARD
+# -----------------------------
+@main.route('/admin', methods=['GET', 'POST'])
+def admin_dashboard():
+
+    if request.method == 'POST':
+        password = request.form.get('admin_password')
+
+        if password == "vaibhav0722":
+            users = User.query.all()
+            transactions = Transaction.query.all()
+
+            return render_template(
+                'admin/admin_dashboard.html',
+                users=users,
+                transactions=transactions
+            )
+        else:
+            flash("Invalid admin passcode!", "danger")
+            return redirect(url_for('main.admin_dashboard'))  # 🔥 IMPORTANT
+
+    return render_template('admin/admin_login_simple.html')
 # -----------------------------
 # ERROR HANDLERS
 # -----------------------------
 @main.app_errorhandler(404)
 def not_found_error(error):
     return render_template('errors/404.html'), 404
-
 
 @main.app_errorhandler(500)
 def internal_error(error):
