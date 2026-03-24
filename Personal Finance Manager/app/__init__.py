@@ -2,36 +2,43 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
-# creating objects here so we can use them in other files easily
+# global objects
 db = SQLAlchemy()
 login_manager = LoginManager()
 
 
 def create_app():
-    # creating the main flask app
     app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
-    # basic configuration
+    # 🔐 CONFIG
     app.config['SECRET_KEY'] = 'this_is_a_secret_key_change_later'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # initializing database with app
+    # 🗄️ INIT DB
     db.init_app(app)
 
-    # setting up login manager
+    # 🔐 LOGIN MANAGER SETUP
     login_manager.init_app(app)
-    login_manager.login_view = 'login'  # if user not logged in → redirect here
+    login_manager.login_view = 'main.login'   # 🔥 FIX (IMPORTANT)
 
-    # importing models so tables can be created
+    # 📦 IMPORT MODELS
     from .models import User
 
-    # this function tells flask-login how to load a user
+    # 👤 USER LOADER
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # importing routes and registering them
+    # 🚫 PREVENT BACK BUTTON AFTER LOGOUT (IMPORTANT)
+    @app.after_request
+    def add_header(response):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    # 🔗 REGISTER ROUTES
     from .routes import main
     app.register_blueprint(main)
 
