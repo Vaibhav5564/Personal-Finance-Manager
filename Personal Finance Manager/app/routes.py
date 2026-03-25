@@ -120,13 +120,13 @@ def add_transaction():
 
         new_amount = form.amount.data
 
-        # ❌ BLOCK NEGATIVE BALANCE
+        #  BLOCK NEGATIVE BALANCE
         if form.type.data == 'expense' and (expense + new_amount > income):
             remaining = income - expense
             flash(f'❌ Insufficient balance! You only have ₹{remaining}', 'danger')
             return render_template('dashboard/add_transaction.html', form=form)
 
-        # ✅ SAVE TRANSACTION
+        #  SAVE TRANSACTION
         new_transaction = Transaction(
             type=form.type.data,
             amount=new_amount,

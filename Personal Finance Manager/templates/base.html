@@ -14,11 +14,11 @@
 
 <body class="bg-light">
 
-    <!-- 🔝 Navbar -->
+    <!--  Navbar -->
     {% include 'navbar.html' %}
 
 
-    <!-- 🔔 FLASH MESSAGES (IMPROVED) -->
+    <!--  FLASH MESSAGES (IMPROVED) -->
     <div class="container mt-3" style="max-width: 700px;">
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -52,7 +52,7 @@
     </div>
 
 
-    <!-- 📦 Main Content -->
+    <!--  Main Content -->
     <div class="container mt-4 mb-5">
 
         {% block content %}
@@ -61,7 +61,7 @@
     </div>
 
 
-    <!-- 🦶 Footer -->
+    <!--  Footer -->
     <footer class="text-center text-muted py-3">
         <small>© 2026 Personal Finance Manager</small>
     </footer>
@@ -71,7 +71,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
-    <!-- 🔥 AUTO HIDE FLASH AFTER 3 SECONDS -->
+    <!--  AUTO HIDE FLASH AFTER 3 SECONDS -->
     <script>
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(alert => {
