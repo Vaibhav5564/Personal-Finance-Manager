@@ -10,27 +10,27 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
-    # 🔐 CONFIG
+    #  CONFIG
     app.config['SECRET_KEY'] = 'this_is_a_secret_key_change_later'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # 🗄️ INIT DB
+    #  INIT DB
     db.init_app(app)
 
-    # 🔐 LOGIN MANAGER SETUP
+    #  LOGIN MANAGER SETUP
     login_manager.init_app(app)
     login_manager.login_view = 'main.login'   # 🔥 FIX (IMPORTANT)
 
-    # 📦 IMPORT MODELS
+    #  IMPORT MODELS
     from .models import User
 
-    # 👤 USER LOADER
+    #  USER LOADER
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # 🚫 PREVENT BACK BUTTON AFTER LOGOUT (IMPORTANT)
+    #  PREVENT BACK BUTTON AFTER LOGOUT (IMPORTANT)
     @app.after_request
     def add_header(response):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -38,7 +38,7 @@ def create_app():
         response.headers["Expires"] = "0"
         return response
 
-    # 🔗 REGISTER ROUTES
+    #  REGISTER ROUTES
     from .routes import main
     app.register_blueprint(main)
 
