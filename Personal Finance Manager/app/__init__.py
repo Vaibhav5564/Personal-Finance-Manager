@@ -20,7 +20,7 @@ def create_app():
 
     #  LOGIN MANAGER SETUP
     login_manager.init_app(app)
-    login_manager.login_view = 'main.login'   # 🔥 FIX (IMPORTANT)
+    login_manager.login_view = 'main.login'  
 
     #  IMPORT MODELS
     from .models import User
@@ -30,7 +30,7 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    #  PREVENT BACK BUTTON AFTER LOGOUT (IMPORTANT)
+    
     @app.after_request
     def add_header(response):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"

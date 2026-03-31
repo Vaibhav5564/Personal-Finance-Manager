@@ -17,7 +17,7 @@ def calculate_totals(transactions):
 # -----------------------------
 # FORMAT CURRENCY
 # -----------------------------
-# just to display amount nicely (₹ symbol + 2 decimal places)
+
 def format_currency(amount):
     return f"₹{amount:,.2f}"
 

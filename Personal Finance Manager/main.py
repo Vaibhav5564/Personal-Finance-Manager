@@ -1,7 +1,5 @@
 # main.py
 
-# This is the file from where we start our application
-# It simply creates the app and runs it
 
 from app import create_app
 

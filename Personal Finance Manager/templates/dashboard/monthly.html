@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">📅 Date-wise Report</h2>
+
+<!-- DATE FILTER FORM -->
+<form method="POST" class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <label>From Date</label>
+        <input type="date" name="from_date" class="form-control" required>
+    </div>
+
+    <div class="col-md-4">
+        <label>To Date</label>
+        <input type="date" name="to_date" class="form-control" required>
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" class="btn btn-dark w-100">
+            Generate Report
+        </button>
+    </div>
+
+</form>
+
+<!-- RESULT CARDS -->
+<div class="row">
+
+    <div class="col-md-4">
+        <div class="card bg-success text-white p-3">
+            <h5>Income</h5>
+            <h3>₹{{ income }}</h3>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-danger text-white p-3">
+            <h5>Expense</h5>
+            <h3>₹{{ expense }}</h3>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-primary text-white p-3">
+            <h5>Balance</h5>
+            <h3>₹{{ balance }}</h3>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

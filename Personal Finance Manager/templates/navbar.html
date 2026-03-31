@@ -17,12 +17,6 @@
 
                 {% if current_user.is_authenticated %}
 
-                <!-- 👑 Admin -->
-                <li class="nav-item">
-                    <a class="nav-link text-danger" href="{{ url_for('main.admin_dashboard') }}">
-                        👑 Admin
-                    </a>
-                </li>
 
                 <!-- Dashboard -->
                 <li class="nav-item">
@@ -31,7 +25,11 @@
                     </a>
                 </li>
 
-                
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('main.monthly_report') }}">
+                       📅 Custom Date Report
+                 </a>
+                </li>
 
                 <!-- 📊 Visualization (NEW) -->
                 <li class="nav-item">
@@ -56,8 +54,11 @@
                     </span>
                 </li>
 
+
+
+
                 <!-- Logout -->
-                <li class="nav-item">
+                <li class="nav-item" style="margin-left: 1rem;">
                     <a class="nav-link btn btn-danger text-white px-3"
                        href="{{ url_for('main.logout') }}">
                         Logout
@@ -65,12 +66,20 @@
                 </li>
 
                 <!-- Dark Mode -->
-                <li class="nav-item">
+                <li class="nav-item" style="margin-left: 1rem;">
                     <button onclick="toggleDarkMode()" class="btn btn-secondary">
                         🌙
                     </button>
                 </li>
 
+                <!-- 👑 Admin -->
+                <li class="nav-item ad" style="margin-left: 1rem;">
+                    <a class="nav-link text-danger" href="{{ url_for('main.admin_dashboard') }}">
+                        👑 Admin
+                     </a>
+                </li>
+
+                
                 {% else %}
 
                 <li class="nav-item">

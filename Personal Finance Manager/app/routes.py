@@ -7,6 +7,8 @@ from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import csv
 
+
+
 # Blueprint
 main = Blueprint('main', __name__)
 
@@ -16,7 +18,7 @@ main = Blueprint('main', __name__)
 
 @main.route('/')
 def home():
-    logout_user()   # 🔥 force logout every time
+    logout_user()   
     return redirect(url_for('main.login'))
 
 # -----------------------------
@@ -214,15 +216,19 @@ def export():
 @main.route('/visualize')
 @login_required
 def visualize():
+
     transactions = Transaction.query.filter_by(user_id=current_user.id).all()
 
     income = sum(t.amount for t in transactions if t.type == 'income')
     expense = sum(t.amount for t in transactions if t.type == 'expense')
 
-    return render_template('dashboard/visualize.html',
-                           income=income,
-                           expense=expense)
+    balance = income - expense
 
+    return render_template(
+        'dashboard/visualize.html',
+        expense=expense,
+        balance=balance
+    )
 # -----------------------------
 # ADMIN DASHBOARD
 # -----------------------------
@@ -243,7 +249,7 @@ def admin_dashboard():
             )
         else:
             flash("Invalid admin passcode!", "danger")
-            return redirect(url_for('main.admin_dashboard'))  # 🔥 IMPORTANT
+            return redirect(url_for('main.admin_dashboard'))  
 
     return render_template('admin/admin_login_simple.html')
 # -----------------------------
@@ -256,3 +262,61 @@ def not_found_error(error):
 @main.app_errorhandler(500)
 def internal_error(error):
     return render_template('errors/500.html'), 500
+
+
+from flask_login import current_user
+from flask import request, redirect, url_for
+
+@main.before_app_request
+def restrict_access():
+    if not current_user.is_authenticated:
+
+        allowed_routes = [
+            'main.login',
+            'main.register',
+            'main.admin_dashboard',
+            'static'
+        ]
+
+        
+        if request.endpoint not in allowed_routes:
+            return redirect(url_for('main.login'))
+
+
+@main.route('/monthly', methods=['GET', 'POST'])
+@login_required
+def monthly_report():
+
+    from datetime import datetime
+
+    income = 0
+    expense = 0
+    balance = 0
+
+    if request.method == 'POST':
+        from_date = request.form.get('from_date')
+        to_date = request.form.get('to_date')
+
+        if from_date and to_date:
+            from_date = datetime.strptime(from_date, '%Y-%m-%d')
+            to_date = datetime.strptime(to_date, '%Y-%m-%d')
+
+            transactions = Transaction.query.filter(
+                Transaction.user_id == current_user.id,
+                Transaction.date >= from_date,
+                Transaction.date <= to_date
+            ).all()
+
+            income = sum(t.amount for t in transactions if t.type == 'income')
+            expense = sum(t.amount for t in transactions if t.type == 'expense')
+            balance = income - expense
+
+        else:
+            flash("Please select both dates!", "warning")
+
+    return render_template(
+        'dashboard/monthly.html',
+        income=income,
+        expense=expense,
+        balance=balance
+    )
