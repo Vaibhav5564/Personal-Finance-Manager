@@ -12,31 +12,32 @@
     <button class="btn btn-success m-2" onclick="showChart('summary')">Summary</button>
 </div>
 
-<!-- GRAPH AREA (more downward) -->
+<!-- GRAPH AREA -->
 <div style="max-width:500px; margin: 80px auto 0;">
     <canvas id="chart" style="filter: drop-shadow(0px 10px 20px rgba(0,0,0,0.2));"></canvas>
 </div>
 
-<!-- SUMMARY -->
-<div id="summaryBox" class="mt-5" style="display:none;">
-    <div class="row text-center">
+<!-- SUMMARY (moved upward + animation) -->
+<div id="summaryBox" class="mt-3" style="display:none;">
+    <div class="row text-center justify-content-center">
 
-        <div class="col-md-4">
-            <div class="card bg-danger text-white p-3 shadow">
+        <!-- SAME SIZE CARDS -->
+        <div class="col-md-3 m-2">
+            <div class="card bg-danger text-white p-3 shadow summary-card">
                 <h5>Expense</h5>
                 <h3>₹{{ expense }}</h3>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card bg-success text-white p-3 shadow">
+        <div class="col-md-3 m-2">
+            <div class="card bg-success text-white p-3 shadow summary-card">
                 <h5>Remaining</h5>
                 <h3>₹{{ balance }}</h3>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card bg-dark text-white p-3 shadow">
+        <div class="col-md-3 m-2">
+            <div class="card bg-dark text-white p-3 shadow summary-card">
                 <h5>Status</h5>
 
                 {% if balance > 5000 %}
@@ -44,12 +45,29 @@
                 {% else %}
                     <h6 class="text-danger">⚠️ Low Balance</h6>
                 {% endif %}
-
             </div>
         </div>
 
     </div>
 </div>
+
+<!-- STYLE -->
+<style id="4t6m92">
+/* Equal height + smooth animation */
+.summary-card {
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Small hover animation */
+.summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
+}
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -60,12 +78,21 @@ let chart;
 
 function showChart(type) {
 
-    document.getElementById('summaryBox').style.display = "none";
+    let summary = document.getElementById('summaryBox');
+
+    summary.style.display = "none";
 
     if (chart) chart.destroy();
 
     if (type === 'summary') {
-        document.getElementById('summaryBox').style.display = "block";
+        summary.style.display = "block";
+
+        summary.style.opacity = 0;
+        setTimeout(() => {
+            summary.style.transition = "opacity 0.5s ease";
+            summary.style.opacity = 1;
+        }, 50);
+
         return;
     }
 
@@ -76,7 +103,7 @@ function showChart(type) {
             datasets: [{
                 data: [expense, balance],
                 backgroundColor: ['#ff4d4d', '#28a745'],
-                borderRadius: 5,
+                borderRadius: 0,
                 hoverOffset: 20
             }]
         },
@@ -85,24 +112,20 @@ function showChart(type) {
             maintainAspectRatio: false,
 
             animation: {
-                duration: 1000,
-                easing: 'easeOutQuart',
-                animateScale: true,
-                animateRotate: true
+                duration: 800,
+                easing: 'easeOutQuart'
             },
 
             plugins: {
                 legend: {
-                    display: false   
+                    display: false
                 }
             },
 
             scales: type === 'bar' ? {
                 x: {
                     grid: { display: false },
-                    ticks: {
-                        padding: 10
-                    }
+                    ticks: { padding: 10 }
                 },
                 y: {
                     beginAtZero: true,
@@ -116,10 +139,6 @@ function showChart(type) {
     });
 }
 
-// default load
-window.onload = function() {
-    showChart('pie');
-};
 </script>
 
 {% endblock %}
