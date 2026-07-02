@@ -1,11 +1,10 @@
-// simple console message to check JS working
+// Check JS is loaded
 console.log("Finance Manager JS Loaded");
 
-
-// confirmation before deleting transaction
+// Confirmation before deleting transaction
 document.addEventListener("DOMContentLoaded", function () {
 
-    const deleteButtons = document.querySelectorAll(".btn-danger");
+    const deleteButtons = document.querySelectorAll(".delete-btn");
 
     deleteButtons.forEach(button => {
         button.addEventListener("click", function (e) {
@@ -13,8 +12,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const confirmDelete = confirm("Are you sure you want to delete this transaction?");
 
             if (!confirmDelete) {
-                e.preventDefault(); // stop deletion
+                e.preventDefault();
             }
+
         });
     });
 

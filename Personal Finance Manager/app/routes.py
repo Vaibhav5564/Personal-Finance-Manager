@@ -6,7 +6,7 @@ from .utils import calculate_totals
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import csv
-
+from flask import session
 
 
 # Blueprint
@@ -18,9 +18,9 @@ main = Blueprint('main', __name__)
 
 @main.route('/')
 def home():
-    logout_user()   
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
     return redirect(url_for('main.login'))
-
 # -----------------------------
 # REGISTER
 # -----------------------------
@@ -229,29 +229,7 @@ def visualize():
         expense=expense,
         balance=balance
     )
-# -----------------------------
-# ADMIN DASHBOARD
-# -----------------------------
-@main.route('/admin', methods=['GET', 'POST'])
-def admin_dashboard():
 
-    if request.method == 'POST':
-        password = request.form.get('admin_password')
-
-        if password == "vaibhav0722":
-            users = User.query.all()
-            transactions = Transaction.query.all()
-
-            return render_template(
-                'admin/admin_dashboard.html',
-                users=users,
-                transactions=transactions
-            )
-        else:
-            flash("Invalid admin passcode!", "danger")
-            return redirect(url_for('main.admin_dashboard'))  
-
-    return render_template('admin/admin_login_simple.html')
 # -----------------------------
 # ERROR HANDLERS
 # -----------------------------
@@ -274,7 +252,9 @@ def restrict_access():
         allowed_routes = [
             'main.login',
             'main.register',
-            'main.admin_dashboard',
+            'main.admin_login',      # Allow admin login page
+            'main.admin_dashboard',  # Optional
+            'main.admin_logout',     # Optional
             'static'
         ]
 
@@ -320,3 +300,55 @@ def monthly_report():
         expense=expense,
         balance=balance
     )
+
+# -----------------------------
+# ADMIN DASHBOARD
+# -----------------------------
+
+
+
+@main.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+
+    if request.method == 'POST':
+
+        password = request.form.get('password')
+
+        if password == "vaibhav0722":
+
+            session['admin'] = True
+
+            return redirect(url_for('main.admin_dashboard'))
+
+        else:
+
+            flash("Invalid Admin Password", "danger")
+
+    return render_template("admin/admin_login.html")
+
+@main.route('/admin/dashboard')
+def admin_dashboard():
+
+    if not session.get("admin"):
+
+        return redirect(url_for('main.admin_login'))
+
+    users = User.query.all()
+
+    transactions = Transaction.query.all()
+
+    return render_template(
+        "admin/admin_dashboard.html",
+        users=users,
+        transactions=transactions
+    )
+
+
+@main.route('/admin/logout')
+def admin_logout():
+
+    session.pop("admin", None)
+
+    flash("Admin logged out successfully.")
+
+    return redirect(url_for("main.admin_login"))
