@@ -1,7 +1,4 @@
-// Check JS is loaded
-console.log("Finance Manager JS Loaded");
 
-// Confirmation before deleting transaction
 document.addEventListener("DOMContentLoaded", function () {
 
     const deleteButtons = document.querySelectorAll(".delete-btn");

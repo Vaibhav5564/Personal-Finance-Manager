@@ -206,7 +206,7 @@ def export():
 
     return Response(
         generate(),
-        mimetype='text/csv',
+        mimetype='teTxt/csv',
         headers={"Content-Disposition": "attachment;filename=transactions.csv"}
     )
 
