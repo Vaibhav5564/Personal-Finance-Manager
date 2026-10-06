@@ -5,3 +5,4 @@ Flask-WTF
 email-validator
 Werkzeug
 gunicorn
+reportlab
