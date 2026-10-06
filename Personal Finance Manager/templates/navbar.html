@@ -4,12 +4,20 @@
         <!-- Logo -->
         <span class="navbar-brand">💰 Finance Manager</span>
 
-        <!-- Toggle -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <!-- Toggle Button -->
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <!-- COLLAPSE START -->
+        <!-- Navbar Content -->
         <div class="collapse navbar-collapse" id="navbarNav">
 
             <!-- LEFT SIDE -->
@@ -17,24 +25,43 @@
 
                 {% if current_user.is_authenticated %}
 
-
                 <!-- Dashboard -->
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.dashboard') }}">
-                        Dashboard
+                    <a class="nav-link"
+                       href="{{ url_for('main.dashboard') }}">
+                        🏠 Dashboard
                     </a>
                 </li>
 
+                <!-- Custom Date Report -->
                 <li class="nav-item">
-                  <a class="nav-link" href="{{ url_for('main.monthly_report') }}">
-                       📅 Custom Date Report
-                 </a>
+                    <a class="nav-link"
+                       href="{{ url_for('main.monthly_report') }}">
+                        📅 Custom Date Report
+                    </a>
                 </li>
 
-                <!--  Visualization (NEW) -->
+                <!-- Visualization -->
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.visualize') }}">
+                    <a class="nav-link"
+                       href="{{ url_for('main.visualize') }}">
                         📊 Visualization
+                    </a>
+                </li>
+
+                <!-- Records -->
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="{{ url_for('main.records') }}">
+                        📄 Records
+                    </a>
+                </li>
+
+                <!-- Smart Financial Insights -->
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="{{ url_for('main.insights') }}">
+                        💡 Insights
                     </a>
                 </li>
 
@@ -54,26 +81,34 @@
                     </span>
                 </li>
 
-
-
-
                 <!-- Logout -->
                 <li class="nav-item" style="margin-left: 1rem;">
-                    <a class="nav-link btn btn-danger text-white px-3"
-                       href="{{ url_for('main.logout') }}">
-                        Logout
+                    <a
+                        class="nav-link btn btn-danger text-white px-3"
+                        href="{{ url_for('main.logout') }}"
+                    >
+                        🚪 Logout
                     </a>
                 </li>
-            
+
                 {% else %}
 
+                <!-- Login -->
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.login') }}">Login</a>
+                    <a
+                        class="nav-link"
+                        href="{{ url_for('main.login') }}"
+                    >
+                        Login
+                    </a>
                 </li>
 
+                <!-- Register -->
                 <li class="nav-item">
-                    <a class="nav-link btn btn-primary text-white px-3"
-                       href="{{ url_for('main.register') }}">
+                    <a
+                        class="nav-link btn btn-primary text-white px-3"
+                        href="{{ url_for('main.register') }}"
+                    >
                         Register
                     </a>
                 </li>
@@ -83,11 +118,13 @@
             </ul>
 
         </div>
-        <!-- COLLAPSE END -->
+        <!-- Navbar Content END -->
 
     </div>
 </nav>
 
+
+<!-- Dark Mode Script -->
 <script>
 function toggleDarkMode() {
     document.body.classList.toggle("bg-dark");

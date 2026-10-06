@@ -4,45 +4,258 @@
 
 <div class="container mt-4">
 
-<h2>👑 Admin Dashboard</h2>
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>👑 Admin Dashboard</h2>
+            <p class="text-muted mb-0">
+                Overview of your Personal Finance Manager
+            </p>
+        </div>
 
-<!-- USERS -->
-<h4 class="mt-4">Users</h4>
-<table class="table table-bordered">
-    <tr>
-        <th>ID</th>
-        <th>Username</th>
-        <th>Email</th>
-    </tr>
+        <a href="{{ url_for('main.admin_logout') }}"
+           class="btn btn-danger">
+            🚪 Admin Logout
+        </a>
+    </div>
 
-    {% for user in users %}
-    <tr>
-        <td>{{ user.id }}</td>
-        <td>{{ user.username }}</td>
-        <td>{{ user.email }}</td>
-    </tr>
-    {% endfor %}
-</table>
 
-<!-- TRANSACTIONS -->
-<h4 class="mt-5">All Transactions</h4>
-<table class="table table-striped">
-    <tr>
-        <th>User ID</th>
-        <th>Type</th>
-        <th>Category</th>
-        <th>Amount</th>
-    </tr>
+    <!-- STATISTICS CARDS -->
+    <div class="row g-3">
 
-    {% for t in transactions %}
-    <tr>
-        <td>{{ t.user_id }}</td>
-        <td>{{ t.type }}</td>
-        <td>{{ t.category }}</td>
-        <td>₹{{ t.amount }}</td>
-    </tr>
-    {% endfor %}
-</table>
+        <!-- USERS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">👥 Total Users</h6>
+                    <h2>{{ total_users }}</h2>
+                    <p class="mb-0 text-muted">
+                        Registered users
+                    </p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">🧾 Total Transactions</h6>
+                    <h2>{{ total_transactions }}</h2>
+                    <p class="mb-0 text-muted">
+                        All recorded transactions
+                    </p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- INCOME -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">💰 Total Income</h6>
+                    <h2>₹{{ "%.2f"|format(total_income) }}</h2>
+                    <p class="mb-0 text-muted">
+                        {{ income_transactions }} income records
+                    </p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- EXPENSE -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">💸 Total Expenses</h6>
+                    <h2>₹{{ "%.2f"|format(total_expense) }}</h2>
+                    <p class="mb-0 text-muted">
+                        {{ expense_transactions }} expense records
+                    </p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- BALANCE -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">📊 Net Balance</h6>
+                    <h2>₹{{ "%.2f"|format(total_balance) }}</h2>
+
+                    {% if total_balance >= 0 %}
+                        <p class="text-success mb-0">
+                            Positive balance
+                        </p>
+                    {% else %}
+                        <p class="text-danger mb-0">
+                            Expenses exceed income
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+
+        <!-- USERS / TRANSACTIONS -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">📈 Activity</h6>
+
+                    <p class="mb-1">
+                        Income Records:
+                        <strong>{{ income_transactions }}</strong>
+                    </p>
+
+                    <p class="mb-0">
+                        Expense Records:
+                        <strong>{{ expense_transactions }}</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ALL USERS -->
+    <div id="allUsers" class="card shadow-sm mt-4">
+
+        <div class="card-header">
+            <h4 class="mb-0">👥 All Users</h4>
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for user in users %}
+
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ALL TRANSACTIONS -->
+    <div id="allTransactions" class="card shadow-sm mt-4 mb-5">
+
+        <div class="card-header">
+            <h4 class="mb-0">🧾 All Transactions</h4>
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for t in transactions %}
+
+                        <tr>
+
+                            <td>
+                                {{ t.user.username }}
+                            </td>
+
+                            <td>
+
+                                {% if t.type == 'income' %}
+
+                                    <span class="badge bg-success">
+                                        Income
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge bg-danger">
+                                        Expense
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ t.category }}
+                            </td>
+
+                            <td>
+                                ₹{{ "%.2f"|format(t.amount) }}
+                            </td>
+
+                            <td>
+                                {{ t.description or '-' }}
+                            </td>
+
+                            <td>
+                                {{ t.date.strftime('%d-%m-%Y %H:%M') }}
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+                            <td colspan="6"
+                                class="text-center text-muted">
+                                No transactions found.
+                            </td>
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
 

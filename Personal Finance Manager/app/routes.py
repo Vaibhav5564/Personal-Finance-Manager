@@ -7,7 +7,14 @@ from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import csv
 from flask import session
+from collections import defaultdict
 
+from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.enums import TA_CENTER
 
 # Blueprint
 main = Blueprint('main', __name__)
@@ -21,24 +28,37 @@ def home():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     return redirect(url_for('main.login'))
+
+
 # -----------------------------
 # REGISTER
 # -----------------------------
 @main.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
-
     form = RegisterForm()
 
     if form.validate_on_submit():
-        existing_user = User.query.filter_by(email=form.email.data).first()
+
+        # Check if username OR email already exists
+        existing_user = User.query.filter(
+            (User.username == form.username.data) |
+            (User.email == form.email.data)
+        ).first()
 
         if existing_user:
-            flash('Email already exists. Please login.')
-            return redirect(url_for('main.login'))
+            flash(
+                "Username or email already used. Please choose another.",
+                "danger"
+            )
+            return render_template(
+                "auth/register.html",
+                form=form
+            )
 
-        hashed_password = generate_password_hash(form.password.data)
+        # Create new user
+        hashed_password = generate_password_hash(
+            form.password.data
+        )
 
         new_user = User(
             username=form.username.data,
@@ -47,12 +67,30 @@ def register():
         )
 
         db.session.add(new_user)
-        db.session.commit()
 
-        flash('Account created successfully! Please login.')
-        return redirect(url_for('main.login'))
+        try:
+            db.session.commit()
 
-    return render_template('auth/register.html', form=form)
+            flash(
+                "Registration successful! You can now login.",
+                "success"
+            )
+
+            return redirect(url_for('main.login'))
+
+        except Exception:
+            db.session.rollback()
+
+            flash(
+                "Something went wrong while creating your account. Please try again.",
+                "danger"
+            )
+
+    return render_template(
+        "auth/register.html",
+        form=form
+    )
+
 
 # -----------------------------
 # LOGIN
@@ -90,18 +128,89 @@ def logout():
 # -----------------------------
 # DASHBOARD
 # -----------------------------
+
 @main.route('/dashboard')
 @login_required
 def dashboard():
-    transactions = Transaction.query.filter_by(user_id=current_user.id).all()
+
+    transactions = Transaction.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
     income, expense, balance = calculate_totals(transactions)
+
+    # --------------------------------
+    # SMART FINANCIAL INSIGHTS
+    # --------------------------------
+
+    insights = []
+
+    # 1. Savings / Financial Status
+    if income > 0:
+        savings_percentage = (balance / income) * 100
+        expense_percentage = (expense / income) * 100
+
+        if balance > 0:
+            insights.append(
+                f"💰 You have saved ₹{balance:.2f}, "
+                f"which is {savings_percentage:.1f}% of your income."
+            )
+        else:
+            insights.append(
+                "⚠️ Your expenses are equal to or greater than your income."
+            )
+
+        # 2. Expense percentage
+        insights.append(
+            f"📊 You have spent {expense_percentage:.1f}% "
+            f"of your total income."
+        )
+
+    # 3. Highest spending category
+    category_expenses = defaultdict(float)
+
+    for t in transactions:
+        if t.type == 'expense':
+            category_expenses[t.category] += t.amount
+
+    if category_expenses:
+        highest_category = max(
+            category_expenses,
+            key=category_expenses.get
+        )
+
+        highest_amount = category_expenses[highest_category]
+
+        insights.append(
+            f"🏆 Your highest spending category is "
+            f"{highest_category} (₹{highest_amount:.2f})."
+        )
+
+        # 4. Spending advice
+        if expense > 0:
+            category_percentage = (
+                highest_amount / expense
+            ) * 100
+
+            if category_percentage >= 40:
+                insights.append(
+                    f"💡 {highest_category} accounts for "
+                    f"{category_percentage:.1f}% of your expenses. "
+                    f"Consider reviewing this category."
+                )
+            else:
+                insights.append(
+                    "👍 Your expenses are reasonably distributed "
+                    "across different categories."
+                )
 
     return render_template(
         'dashboard/dashboard.html',
         transactions=transactions,
         income=income,
         expense=expense,
-        balance=balance
+        balance=balance,
+        insights=insights
     )
 
 # -----------------------------
@@ -211,24 +320,635 @@ def export():
     )
 
 # -----------------------------
-# VISUALIZE
+# VISUALIZATION
 # -----------------------------
+
 @main.route('/visualize')
 @login_required
 def visualize():
 
-    transactions = Transaction.query.filter_by(user_id=current_user.id).all()
+    transactions = Transaction.query.filter_by(
+        user_id=current_user.id
+    ).order_by(Transaction.date.asc()).all()
 
-    income = sum(t.amount for t in transactions if t.type == 'income')
-    expense = sum(t.amount for t in transactions if t.type == 'expense')
+    # -----------------------------
+    # BASIC TOTALS
+    # -----------------------------
+
+    income = sum(
+        t.amount for t in transactions
+        if t.type == 'income'
+    )
+
+    expense = sum(
+        t.amount for t in transactions
+        if t.type == 'expense'
+    )
+
+    balance = income - expense
+
+    # -----------------------------
+    # CATEGORY-WISE EXPENSE
+    # -----------------------------
+
+    category_expenses = {}
+
+    for t in transactions:
+
+        if t.type == 'expense':
+
+            category = t.category or "Other"
+
+            if category not in category_expenses:
+                category_expenses[category] = 0
+
+            category_expenses[category] += t.amount
+
+    # -----------------------------
+    # MONTHLY DATA
+    # -----------------------------
+
+    monthly_income = {}
+    monthly_expense = {}
+
+    for t in transactions:
+
+        month = t.date.strftime("%b %Y")
+
+        if t.type == 'income':
+
+            monthly_income[month] = (
+                monthly_income.get(month, 0) + t.amount
+            )
+
+        elif t.type == 'expense':
+
+            monthly_expense[month] = (
+                monthly_expense.get(month, 0) + t.amount
+            )
+
+    # Keep months in chronological order
+    months = sorted(
+        set(monthly_income.keys()) |
+        set(monthly_expense.keys()),
+        key=lambda x: __import__('datetime').datetime.strptime(
+            x, "%b %Y"
+        )
+    )
+
+    income_data = [
+        monthly_income.get(month, 0)
+        for month in months
+    ]
+
+    expense_data = [
+        monthly_expense.get(month, 0)
+        for month in months
+    ]
+
+    return render_template(
+        'dashboard/visualize.html',
+
+        income=income,
+        expense=expense,
+        balance=balance,
+
+        transaction_count=len(transactions),
+
+        category_labels=list(category_expenses.keys()),
+        category_values=list(category_expenses.values()),
+
+        months=months,
+        income_data=income_data,
+        expense_data=expense_data
+    )
 
     balance = income - expense
 
     return render_template(
         'dashboard/visualize.html',
+        income=income,
         expense=expense,
-        balance=balance
+        balance=balance,
+        transactions=transactions
     )
+
+# -----------------------------
+# RECORDS
+# -----------------------------
+
+@main.route('/records')
+@login_required
+def records():
+
+    transactions = Transaction.query.filter_by(
+        user_id=current_user.id
+    ).order_by(Transaction.date.desc()).all()
+
+    income, expense, balance = calculate_totals(transactions)
+
+    return render_template(
+        'dashboard/records.html',
+        transactions=transactions,
+        income=income,
+        expense=expense,
+        balance=balance,
+        record_type='all'
+    )
+
+
+# -----------------------------
+# INCOME RECORDS
+# -----------------------------
+
+@main.route('/records/income')
+@login_required
+def income_records():
+
+    transactions = Transaction.query.filter_by(
+        user_id=current_user.id,
+        type='income'
+    ).order_by(Transaction.date.desc()).all()
+
+    income = sum(t.amount for t in transactions)
+    expense = 0
+    balance = income
+
+    return render_template(
+        'dashboard/records.html',
+        transactions=transactions,
+        income=income,
+        expense=expense,
+        balance=balance,
+        record_type='income'
+    )
+
+
+# -----------------------------
+# EXPENSE RECORDS
+# -----------------------------
+
+@main.route('/records/expense')
+@login_required
+def expense_records():
+
+    transactions = Transaction.query.filter_by(
+        user_id=current_user.id,
+        type='expense'
+    ).order_by(Transaction.date.desc()).all()
+
+    expense = sum(t.amount for t in transactions)
+    income = 0
+    balance = -expense
+
+    return render_template(
+        'dashboard/records.html',
+        transactions=transactions,
+        income=income,
+        expense=expense,
+        balance=balance,
+        record_type='expense'
+    )
+
+
+# -----------------------------
+# DOWNLOAD RECORDS PDF
+# -----------------------------
+
+@main.route('/records/pdf/<record_type>')
+@login_required
+def records_pdf(record_type):
+
+    if record_type == 'income':
+
+        transactions = Transaction.query.filter_by(
+            user_id=current_user.id,
+            type='income'
+        ).order_by(Transaction.date.desc()).all()
+
+        title = "Income Records"
+
+    elif record_type == 'expense':
+
+        transactions = Transaction.query.filter_by(
+            user_id=current_user.id,
+            type='expense'
+        ).order_by(Transaction.date.desc()).all()
+
+        title = "Expense Records"
+
+    else:
+
+        transactions = Transaction.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Transaction.date.desc()).all()
+
+        title = "All Transaction Records"
+
+    income, expense, balance = calculate_totals(transactions)
+
+    pdf_buffer = BytesIO()
+
+    document = SimpleDocTemplate(
+        pdf_buffer,
+        pagesize=A4,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = styles['Title']
+    title_style.alignment = TA_CENTER
+
+    elements = []
+
+    # -----------------------------
+    # TITLE
+    # -----------------------------
+
+    elements.append(
+        Paragraph(
+            "PERSONAL FINANCE MANAGER",
+            title_style
+        )
+    )
+
+    elements.append(
+        Spacer(1, 5)
+    )
+
+    elements.append(
+        Paragraph(
+            title,
+            styles['Heading2']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 15)
+    )
+
+    # -----------------------------
+    # USER INFORMATION
+    # -----------------------------
+
+    elements.append(
+        Paragraph(
+            f"<b>User:</b> {current_user.username}",
+            styles['Normal']
+        )
+    )
+
+    elements.append(
+        Paragraph(
+            f"<b>Email:</b> {current_user.email}",
+            styles['Normal']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 15)
+    )
+
+    # -----------------------------
+    # SUMMARY
+    # -----------------------------
+
+    summary_data = [
+        ["Financial Summary", "Amount"],
+        ["Income", f"Rs. {income:.2f}"],
+        ["Expense", f"Rs. {expense:.2f}"],
+        ["Balance", f"Rs. {balance:.2f}"]
+    ]
+
+    summary_table = Table(
+        summary_data,
+        colWidths=[300, 150]
+    )
+
+    summary_table.setStyle(
+        TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+            ('PADDING', (0, 0), (-1, -1), 6)
+        ])
+    )
+
+    elements.append(summary_table)
+
+    elements.append(
+        Spacer(1, 20)
+    )
+
+    # -----------------------------
+    # TRANSACTIONS
+    # -----------------------------
+
+    elements.append(
+        Paragraph(
+            "Transaction History",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 10)
+    )
+
+    transaction_data = [
+        [
+            "Date",
+            "Type",
+            "Category",
+            "Amount",
+            "Description"
+        ]
+    ]
+
+    for t in transactions:
+
+        transaction_data.append([
+            t.date.strftime("%d-%m-%Y"),
+            t.type.title(),
+            t.category or "-",
+            f"Rs. {t.amount:.2f}",
+            t.description or "-"
+        ])
+
+    if len(transaction_data) == 1:
+
+        transaction_data.append([
+            "-",
+            "-",
+            "No records",
+            "-",
+            "-"
+        ])
+
+    transaction_table = Table(
+        transaction_data,
+        colWidths=[65, 55, 75, 75, 180],
+        repeatRows=1
+    )
+
+    transaction_table.setStyle(
+        TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
+            ('PADDING', (0, 0), (-1, -1), 5)
+        ])
+    )
+
+    elements.append(transaction_table)
+
+    elements.append(
+        Spacer(1, 15)
+    )
+
+    elements.append(
+        Paragraph(
+            f"<b>Total Records:</b> {len(transactions)}",
+            styles['Normal']
+        )
+    )
+
+    document.build(elements)
+
+    pdf_buffer.seek(0)
+
+    return Response(
+        pdf_buffer.getvalue(),
+        mimetype='application/pdf',
+        headers={
+            "Content-Disposition":
+            f"attachment; filename={record_type}_records.pdf"
+        }
+    )
+
+# -----------------------------
+# SMART FINANCIAL INSIGHTS
+# -----------------------------
+
+@main.route('/insights')
+@login_required
+def insights():
+
+    transactions = Transaction.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
+    income, expense, balance = calculate_totals(transactions)
+
+    insights = []
+
+    # --------------------------------
+    # NO TRANSACTIONS
+    # --------------------------------
+
+    if not transactions:
+
+        insights.append(
+            "💡 Add some income and expense transactions "
+            "to start receiving personalized financial insights."
+        )
+
+        return render_template(
+            'insights.html',
+            insights=insights
+        )
+
+
+    # --------------------------------
+    # INCOME ANALYSIS
+    # --------------------------------
+
+    if income > 0:
+
+        savings_percentage = (balance / income) * 100
+        expense_percentage = (expense / income) * 100
+
+        # Savings
+        if balance > 0:
+
+            insights.append(
+                f"💰 You have saved ₹{balance:.2f}, "
+                f"which is {savings_percentage:.1f}% "
+                f"of your total income."
+            )
+
+        else:
+
+            insights.append(
+                "⚠️ Your expenses are equal to or greater "
+                "than your income. Try reducing unnecessary expenses."
+            )
+
+
+        # Expense percentage
+        insights.append(
+            f"📊 You have spent {expense_percentage:.1f}% "
+            f"of your total income."
+        )
+
+
+        # --------------------------------
+        # SAVINGS HEALTH
+        # --------------------------------
+
+        if savings_percentage >= 50:
+
+            insights.append(
+                "🌟 Excellent! You are maintaining a strong "
+                "savings rate. Keep up the good financial discipline."
+            )
+
+        elif savings_percentage >= 20:
+
+            insights.append(
+                "👍 Your savings rate is healthy. "
+                "Continue maintaining your current spending habits."
+            )
+
+        elif savings_percentage > 0:
+
+            insights.append(
+                "⚠️ Your savings rate is relatively low. "
+                "Consider reducing unnecessary expenses."
+            )
+
+        else:
+
+            insights.append(
+                "🚨 You currently have no positive savings. "
+                "Try to keep your expenses below your income."
+            )
+
+
+    # --------------------------------
+    # CATEGORY ANALYSIS
+    # --------------------------------
+
+    category_expenses = defaultdict(float)
+
+    for t in transactions:
+
+        if t.type == 'expense':
+
+            category = t.category or "Other"
+
+            category_expenses[category] += t.amount
+
+
+    if category_expenses:
+
+        highest_category = max(
+            category_expenses,
+            key=category_expenses.get
+        )
+
+        highest_amount = category_expenses[
+            highest_category
+        ]
+
+
+        # Highest spending category
+        insights.append(
+            f"🏆 Your highest spending category is "
+            f"{highest_category}, with total expenses of "
+            f"₹{highest_amount:.2f}."
+        )
+
+
+        # Category percentage
+        if expense > 0:
+
+            category_percentage = (
+                highest_amount / expense
+            ) * 100
+
+
+            if category_percentage >= 40:
+
+                insights.append(
+                    f"💡 {highest_category} represents "
+                    f"{category_percentage:.1f}% of your total "
+                    f"expenses. Consider reviewing your spending "
+                    f"in this category."
+                )
+
+            elif category_percentage >= 25:
+
+                insights.append(
+                    f"📌 {highest_category} represents "
+                    f"{category_percentage:.1f}% of your expenses. "
+                    f"Keep an eye on this category."
+                )
+
+            else:
+
+                insights.append(
+                    "👍 Your expenses are reasonably distributed "
+                    "across different categories."
+                )
+
+
+    # --------------------------------
+    # TRANSACTION ANALYSIS
+    # --------------------------------
+
+    total_transactions = len(transactions)
+
+    insights.append(
+        f"🧾 You currently have "
+        f"{total_transactions} recorded transaction"
+        f"{'s' if total_transactions != 1 else ''}."
+    )
+
+
+    # --------------------------------
+    # FINANCIAL RECOMMENDATION
+    # --------------------------------
+
+    if income > 0:
+
+        recommended_saving = income * 0.20
+
+        if balance < recommended_saving:
+
+            insights.append(
+                f"🎯 A useful target could be saving at least "
+                f"₹{recommended_saving:.2f}, which is 20% of "
+                f"your income."
+            )
+
+        else:
+
+            insights.append(
+                "🎯 You are currently saving at least 20% "
+                "of your income. Keep maintaining this habit."
+            )
+
+
+    # --------------------------------
+    # RENDER PAGE
+    # --------------------------------
+
+    return render_template(
+        'insights.html',
+        insights=insights
+    )
+
 
 # -----------------------------
 # ERROR HANDLERS
@@ -305,8 +1025,6 @@ def monthly_report():
 # ADMIN DASHBOARD
 # -----------------------------
 
-
-
 @main.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
 
@@ -330,17 +1048,72 @@ def admin_login():
 def admin_dashboard():
 
     if not session.get("admin"):
-
         return redirect(url_for('main.admin_login'))
 
+    # Get all users and transactions
     users = User.query.all()
-
     transactions = Transaction.query.all()
+
+    # -----------------------------
+    # DASHBOARD STATISTICS
+    # -----------------------------
+
+    total_users = User.query.count()
+    total_transactions = Transaction.query.count()
+
+    # Total income
+    total_income = db.session.query(
+        db.func.sum(Transaction.amount)
+    ).filter(
+        Transaction.type == 'income'
+    ).scalar() or 0
+
+    # Total expenses
+    total_expense = db.session.query(
+        db.func.sum(Transaction.amount)
+    ).filter(
+        Transaction.type == 'expense'
+    ).scalar() or 0
+
+    # Balance
+    total_balance = total_income - total_expense
+
+    # Income transaction count
+    income_transactions = Transaction.query.filter_by(
+        type='income'
+    ).count()
+
+    # Expense transaction count
+    expense_transactions = Transaction.query.filter_by(
+        type='expense'
+    ).count()
+
+    # Recent users
+    recent_users = User.query.order_by(
+        User.id.desc()
+    ).limit(5).all()
+
+    # Recent transactions
+    recent_transactions = Transaction.query.order_by(
+        Transaction.date.desc()
+    ).limit(10).all()
 
     return render_template(
         "admin/admin_dashboard.html",
         users=users,
-        transactions=transactions
+        transactions=transactions,
+
+        total_users=total_users,
+        total_transactions=total_transactions,
+        total_income=total_income,
+        total_expense=total_expense,
+        total_balance=total_balance,
+
+        income_transactions=income_transactions,
+        expense_transactions=expense_transactions,
+
+        recent_users=recent_users,
+        recent_transactions=recent_transactions
     )
 
 

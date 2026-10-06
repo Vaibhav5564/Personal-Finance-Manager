@@ -2,142 +2,563 @@
 
 {% block content %}
 
-<h2 class="mb-4 text-center">📊 Visualization Dashboard</h2>
+<div class="container-fluid mt-4 px-4">
 
-<!-- BUTTONS -->
-<div class="text-center mb-5">
-    <button class="btn btn-dark m-2" onclick="showChart('pie')">Pie Chart</button>
-    <button class="btn btn-primary m-2" onclick="showChart('bar')">Bar Chart</button>
-    <button class="btn btn-warning m-2" onclick="showChart('doughnut')">Doughnut</button>
-    <button class="btn btn-success m-2" onclick="showChart('summary')">Summary</button>
-</div>
+    <!-- PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
 
-<!-- GRAPH AREA -->
-<div style="max-width:500px; margin: 80px auto 0;">
-    <canvas id="chart" style="filter: drop-shadow(0px 10px 20px rgba(0,0,0,0.2));"></canvas>
-</div>
+        <div>
+            <h2 class="fw-bold">
+                📊 Financial Analytics
+            </h2>
 
-<!-- SUMMARY (moved upward + animation) -->
-<div id="summaryBox" class="mt-3" style="display:none;">
-    <div class="row text-center justify-content-center">
-
-        <!-- SAME SIZE CARDS -->
-        <div class="col-md-3 m-2">
-            <div class="card bg-danger text-white p-3 shadow summary-card">
-                <h5>Expense</h5>
-                <h3>₹{{ expense }}</h3>
-            </div>
+            <p class="text-muted mb-0">
+                Understand your spending, income and financial trends.
+            </p>
         </div>
 
-        <div class="col-md-3 m-2">
-            <div class="card bg-success text-white p-3 shadow summary-card">
-                <h5>Remaining</h5>
-                <h3>₹{{ balance }}</h3>
-            </div>
-        </div>
-
-        <div class="col-md-3 m-2">
-            <div class="card bg-dark text-white p-3 shadow summary-card">
-                <h5>Status</h5>
-
-                {% if balance > 5000 %}
-                    <h6 class="text-success">✅ Good Saving</h6>
-                {% else %}
-                    <h6 class="text-danger">⚠️ Low Balance</h6>
-                {% endif %}
-            </div>
+        <div>
+            <span class="badge bg-dark p-2">
+                📈 Financial Overview
+            </span>
         </div>
 
     </div>
+
+
+    <!-- SUMMARY CARDS -->
+
+    <div class="row g-4 mb-4">
+
+        <!-- Income -->
+        <div class="col-md-3">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+                            <p class="text-muted mb-1">
+                                Total Income
+                            </p>
+
+                            <h3 class="fw-bold text-success">
+                                ₹{{ "%.2f"|format(income) }}
+                            </h3>
+                        </div>
+
+                        <div class="fs-1">
+                            💰
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Expense -->
+        <div class="col-md-3">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+                            <p class="text-muted mb-1">
+                                Total Expense
+                            </p>
+
+                            <h3 class="fw-bold text-danger">
+                                ₹{{ "%.2f"|format(expense) }}
+                            </h3>
+                        </div>
+
+                        <div class="fs-1">
+                            💸
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Balance -->
+        <div class="col-md-3">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+                            <p class="text-muted mb-1">
+                                Current Balance
+                            </p>
+
+                            <h3 class="fw-bold text-primary">
+                                ₹{{ "%.2f"|format(balance) }}
+                            </h3>
+                        </div>
+
+                        <div class="fs-1">
+                            🏦
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Transactions -->
+        <div class="col-md-3">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+                            <p class="text-muted mb-1">
+                                Transactions
+                            </p>
+
+                            <h3 class="fw-bold">
+                                {{ transaction_count }}
+                            </h3>
+                        </div>
+
+                        <div class="fs-1">
+                            🧾
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- CHARTS ROW -->
+
+    <div class="row g-4">
+
+        <!-- MONTHLY TREND -->
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <h5 class="fw-bold mb-3">
+                        📈 Income vs Expense
+                    </h5>
+
+                    <canvas id="monthlyChart"
+                            height="120">
+                    </canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORY CHART -->
+
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <h5 class="fw-bold mb-3">
+                        🍩 Expense Distribution
+                    </h5>
+
+                    <canvas id="categoryChart">
+                    </canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- SECOND ROW -->
+
+    <div class="row g-4 mt-1">
+
+        <!-- FINANCIAL COMPARISON -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <h5 class="fw-bold mb-3">
+                        📊 Income vs Expense
+                    </h5>
+
+                    <canvas id="comparisonChart"
+                            height="150">
+                    </canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORY TABLE -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <h5 class="fw-bold mb-3">
+                        📋 Expense by Category
+                    </h5>
+
+                    {% if category_labels %}
+
+                    <div class="table-responsive">
+
+                        <table class="table table-hover">
+
+                            <thead class="table-dark">
+
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-end">
+                                        Amount
+                                    </th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                {% for i in range(category_labels|length) %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ category_labels[i] }}
+                                    </td>
+
+                                    <td class="text-end fw-bold">
+                                        ₹{{ "%.2f"|format(category_values[i]) }}
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    {% else %}
+
+                    <div class="text-center text-muted py-5">
+
+                        <div class="fs-1">
+                            📭
+                        </div>
+
+                        <p class="mb-0">
+                            No expense data available.
+                        </p>
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FINANCIAL HEALTH -->
+
+    <div class="card shadow-sm border-0 mt-4 mb-4">
+
+        <div class="card-body">
+
+            <h5 class="fw-bold">
+                💡 Financial Summary
+            </h5>
+
+            {% if income > 0 %}
+
+                {% set expense_ratio = (expense / income) * 100 %}
+
+                <p class="mb-2">
+                    You are currently spending
+                    <strong>
+                        {{ "%.1f"|format(expense_ratio) }}%
+                    </strong>
+                    of your total income.
+                </p>
+
+                <div class="progress"
+                     style="height: 10px;">
+
+                    <div
+                        class="progress-bar"
+                        role="progressbar"
+                        style="width: {{ [expense_ratio, 100]|min }}%;"
+                    >
+                    </div>
+
+                </div>
+
+                {% if expense_ratio < 50 %}
+
+                    <small class="text-success">
+                        👍 Your spending is currently under control.
+                    </small>
+
+                {% elif expense_ratio < 80 %}
+
+                    <small class="text-warning">
+                        ⚠️ Keep an eye on your spending.
+                    </small>
+
+                {% else %}
+
+                    <small class="text-danger">
+                        🚨 Your expenses are taking a large portion
+                        of your income.
+                    </small>
+
+                {% endif %}
+
+            {% else %}
+
+                <p class="text-muted mb-0">
+                    Add income transactions to generate financial
+                    analysis.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
 </div>
 
-<!-- STYLE -->
-<style id="4t6m92">
-/* Equal height + smooth animation */
-.summary-card {
-    height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
 
-/* Small hover animation */
-.summary-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
-}
-</style>
+<!-- CHART.JS -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+
 <script>
-let expense = {{ expense }};
-let balance = {{ balance }};
-let chart;
 
-function showChart(type) {
+    // -----------------------------
+    // MONTHLY INCOME VS EXPENSE
+    // -----------------------------
 
-    let summary = document.getElementById('summaryBox');
+    const monthlyLabels = {{ months | tojson }};
 
-    summary.style.display = "none";
+    const incomeData = {{ income_data | tojson }};
 
-    if (chart) chart.destroy();
+    const expenseData = {{ expense_data | tojson }};
 
-    if (type === 'summary') {
-        summary.style.display = "block";
 
-        summary.style.opacity = 0;
-        setTimeout(() => {
-            summary.style.transition = "opacity 0.5s ease";
-            summary.style.opacity = 1;
-        }, 50);
+    new Chart(
+        document.getElementById('monthlyChart'),
+        {
+            type: 'line',
 
-        return;
-    }
+            data: {
 
-    chart = new Chart(document.getElementById('chart'), {
-        type: type,
-        data: {
-            labels: ['Expense', 'Remaining'],
-            datasets: [{
-                data: [expense, balance],
-                backgroundColor: ['#ff4d4d', '#28a745'],
-                borderRadius: 0,
-                hoverOffset: 20
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
+                labels: monthlyLabels,
 
-            animation: {
-                duration: 800,
-                easing: 'easeOutQuart'
-            },
+                datasets: [
 
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
+                    {
+                        label: 'Income',
+                        data: incomeData,
 
-            scales: type === 'bar' ? {
-                x: {
-                    grid: { display: false },
-                    ticks: { padding: 10 }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        padding: 15,
-                        stepSize: Math.ceil((expense + balance) / 5)
+                        borderWidth: 3,
+
+                        tension: 0.3,
+
+                        fill: false
+                    },
+
+                    {
+                        label: 'Expense',
+                        data: expenseData,
+
+                        borderWidth: 3,
+
+                        tension: 0.3,
+
+                        fill: false
                     }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                plugins: {
+
+                    legend: {
+                        position: 'top'
+                    }
+
                 }
-            } : {}
+
+            }
+
         }
-    });
-}
+    );
+
+
+    // -----------------------------
+    // CATEGORY PIE CHART
+    // -----------------------------
+
+    const categoryLabels =
+        {{ category_labels | tojson }};
+
+    const categoryValues =
+        {{ category_values | tojson }};
+
+
+    new Chart(
+        document.getElementById('categoryChart'),
+        {
+            type: 'doughnut',
+
+            data: {
+
+                labels: categoryLabels,
+
+                datasets: [
+
+                    {
+                        data: categoryValues
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                plugins: {
+
+                    legend: {
+                        position: 'bottom'
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+
+    // -----------------------------
+    // INCOME VS EXPENSE BAR
+    // -----------------------------
+
+    new Chart(
+        document.getElementById('comparisonChart'),
+        {
+            type: 'bar',
+
+            data: {
+
+                labels: [
+                    'Income',
+                    'Expense',
+                    'Balance'
+                ],
+
+                datasets: [
+
+                    {
+                        label: 'Amount',
+
+                        data: [
+                            {{ income }},
+                            {{ expense }},
+                            {{ balance }}
+                        ],
+
+                        borderWidth: 1
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    }
+
+                }
+
+            }
+
+        }
+    );
 
 </script>
 
